@@ -8,74 +8,71 @@ use Illuminate\Http\Request;
 class SubalternativaepController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Lista con Buscador y Paginado
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
-        $Subalternativaep = subalternativaep::all(); // trae todos los registros
+        $buscar = $request->get('buscar');
 
-        return view('Subalternativaep.index', compact('Subalternativaep'));
-        //return view('regional.index');
+        $Subalternativaep = subalternativaep::when($buscar, function ($query, $buscar) {
+            return $query->where('Nombre', 'LIKE', "%{$buscar}%")
+                ->orWhere('Descripcion', 'LIKE', "%{$buscar}%")
+                ->orWhere('NIS', 'LIKE', "%{$buscar}%");
+        })
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('Subalternativaep.index', compact('Subalternativaep', 'buscar'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
         return view('Subalternativaep.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $data = $request->validate([
-
             'Nombre' => 'required|string|max:100',
             'Descripcion' => 'required|string|max:200',
-
-
         ]);
-        //$data['Observaciones'] = Crypt::encryptString($data['Observaciones']);
-        Subalternativaep::create($data);
+
+        subalternativaep::create($data);
 
         return redirect()->route('Subalternativaep.index')
             ->with('success', 'Registro guardado correctamente');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(subalternativaep $subalternativaep)
+    public function show(subalternativaep $Subalternativaep)
     {
-        //
+        // Nota: Pasamos la variable en singular para la vista
+        return view('Subalternativaep.show', ['sub' => $Subalternativaep]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(subalternativaep $subalternativaep)
+    public function edit(subalternativaep $Subalternativaep)
     {
-        //
+        // Usamos 'sub' para que el formulario dual funcione fácilmente
+        return view('Subalternativaep.create', ['sub' => $Subalternativaep]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, subalternativaep $subalternativaep)
+    public function update(Request $request, subalternativaep $Subalternativaep)
     {
-        //
+        $data = $request->validate([
+            'Nombre' => 'required|string|max:100',
+            'Descripcion' => 'required|string|max:200',
+        ]);
+
+        $Subalternativaep->update($data);
+
+        return redirect()->route('Subalternativaep.index')
+            ->with('success', 'Registro actualizado correctamente');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(subalternativaep $subalternativaep)
+    public function destroy(subalternativaep $Subalternativaep)
     {
-        //
+        $Subalternativaep->delete();
+
+        return redirect()->route('Subalternativaep.index')
+            ->with('success', 'Registro eliminado correctamente');
     }
 }

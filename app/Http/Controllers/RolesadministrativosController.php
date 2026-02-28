@@ -8,73 +8,67 @@ use Illuminate\Http\Request;
 class RolesadministrativosController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Lista con Buscador y Paginado
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
-        $RolesAdministrativos = rolesadministrativos::all(); // trae todos los registros
+        $buscar = $request->get('buscar');
 
-        return view('rolesadministrativos.index', compact('RolesAdministrativos'));
-        //return view('regional.index');
+        $RolesAdministrativos = rolesadministrativos::when($buscar, function ($query, $buscar) {
+            return $query->where('Descripcion', 'LIKE', "%{$buscar}%")
+                ->orWhere('NIS', 'LIKE', "%{$buscar}%");
+        })
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('rolesadministrativos.index', compact('RolesAdministrativos', 'buscar'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
         return view('rolesadministrativos.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $data = $request->validate([
-
             'Descripcion' => 'required|string|max:200',
-
-
         ]);
-        //$data['Observaciones'] = Crypt::encryptString($data['Observaciones']);
-        RolesAdministrativos::create($data);
+
+        rolesadministrativos::create($data);
 
         return redirect()->route('rolesadministrativos.index')
             ->with('success', 'Registro guardado correctamente');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(rolesadministrativos $rolesadministrativos)
+    public function show(rolesadministrativos $rolesadministrativo)
     {
-        //
+        return view('rolesadministrativos.show', compact('rolesadministrativo'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(rolesadministrativos $rolesadministrativos)
+    public function edit(rolesadministrativos $rolesadministrativo)
     {
-        //
+        // Pasamos como 'rol' para simplificar el nombre en la vista
+        return view('rolesadministrativos.create', ['rol' => $rolesadministrativo]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, rolesadministrativos $rolesadministrativos)
+    public function update(Request $request, rolesadministrativos $rolesadministrativo)
     {
-        //
+        $data = $request->validate([
+            'Descripcion' => 'required|string|max:200',
+        ]);
+
+        $rolesadministrativo->update($data);
+
+        return redirect()->route('rolesadministrativos.index')
+            ->with('success', 'Registro actualizado correctamente');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(rolesadministrativos $rolesadministrativos)
+    public function destroy(rolesadministrativos $rolesadministrativo)
     {
-        //
+        $rolesadministrativo->delete();
+
+        return redirect()->route('rolesadministrativos.index')
+            ->with('success', 'Registro eliminado correctamente');
     }
 }

@@ -10,7 +10,7 @@ class tiposeps extends Model
     //
     use HasFactory;
     protected $table = 'tbl_tiposeps';
-
+protected $primaryKey = 'NIS';
     protected $fillable = [
         'NIS', 'numdoc', 'Denominacion', 'Observaciones'
     ];

@@ -10,14 +10,21 @@ class TiposdocumentoController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
-    {
-        //
-        //
-        $tipodoc = tiposdocumento::all(); // trae todos los registros
 
-        return view('tiposdocumento.index', compact('tipodoc'));
-        //return view('regional.index');
+
+    public function index(Request $request)
+    {
+        // Capturamos el texto de búsqueda
+        $buscar = $request->get('buscar');
+
+        // Consultamos con filtro opcional
+        $tipodoc = tiposdocumento::when($buscar, function ($query, $buscar) {
+            return $query->where('Denominacion', 'LIKE', "%{$buscar}%")
+                ->orWhere('NIS', 'LIKE', "%{$buscar}%");
+        })->get();
+
+        // Pasamos 'buscar' a la vista para que el texto no se borre del input al recargar
+        return view('tiposdocumento.index', compact('tipodoc', 'buscar'));
     }
 
     /**
@@ -51,7 +58,8 @@ class TiposdocumentoController extends Controller
      */
     public function show(tiposdocumento $tiposdocumento)
     {
-        //
+        // Retornamos una vista llamada 'show.blade.php' dentro de la carpeta tiposdocumento
+        return view('tiposdocumento.show', compact('tiposdocumento'));
     }
 
     /**
@@ -82,6 +90,11 @@ class TiposdocumentoController extends Controller
      */
     public function destroy(tiposdocumento $tiposdocumento)
     {
-        //
+        // Elimina el registro de la base de datos
+        $tiposdocumento->delete();
+
+        // Redirecciona con un mensaje de éxito
+        return redirect()->route('tiposdocumento.index')
+            ->with('success', 'Tipo de documento eliminado correctamente');
     }
 }

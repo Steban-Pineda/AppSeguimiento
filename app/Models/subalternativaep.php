@@ -10,7 +10,7 @@ class subalternativaep extends Model
     //
     use HasFactory;
     protected $table = 'tbl_subalternativaep';
-
+    protected $primaryKey = 'NIS';
     protected $fillable = [
         'NIS', 'Nombre', 'Descripcion'
     ];

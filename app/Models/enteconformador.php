@@ -12,7 +12,7 @@ class enteconformador extends Model
     protected $table = 'tbl_enteconformador';
 protected $primaryKey = 'NIS';
     protected $fillable = [
-        'NIS', 'tdoc', 'Numdoc', 'RazonSocial', 'Direccion', 'Telefono', 'CorreoInstitucional'
+        'NIS', 'tdoc', 'Numdoc', 'RazonSocial', 'Direccion', 'Telefono', 'CorreoInstitucional', 'anexo_camara'
     ];
 
     public $timestamps = false;

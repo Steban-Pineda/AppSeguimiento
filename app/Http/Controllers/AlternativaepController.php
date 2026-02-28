@@ -4,80 +4,91 @@ namespace App\Http\Controllers;
 
 use App\Models\alternativaep;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Crypt;
 
 class AlternativaepController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Mostrar lista con Buscador
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
-        //
-        $alternativaep = alternativaep::all(); // trae todos los registros
+        $buscar = $request->get('buscar');
 
-        return view('alternativaep.index', compact('alternativaep'));
-        //return view('regional.index');
+        $alternativaep = alternativaep::when($buscar, function ($query, $buscar) {
+            return $query->where('Nombre', 'LIKE', "%{$buscar}%")
+                ->orWhere('NIS', 'LIKE', "%{$buscar}%");
+        })->get();
+
+        return view('alternativaep.index', compact('alternativaep', 'buscar'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
         return view('alternativaep.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $data = $request->validate([
-
             'Nombre' => 'required|string|max:100',
             'Descripcion' => 'required|string|max:200',
-
         ]);
-        //$data['Nombre'] = Crypt::encryptString($data['Nombre']);
+
         alternativaep::create($data);
 
         return redirect()->route('alternativaep.index')
             ->with('success', 'Registro guardado correctamente');
     }
 
-
     /**
-     * Display the specified resource.
+     * Consultar detalle de un registro
      */
     public function show(alternativaep $alternativaep)
     {
-        //
+        return view('alternativaep.show', compact('alternativaep'));
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Cargar formulario de edición
      */
     public function edit(alternativaep $alternativaep)
     {
-        //
+        // Reutilizamos la vista create para editar
+        return view('alternativaep.create', compact('alternativaep'));
     }
 
     /**
-     * Update the specified resource in storage.
+     * Actualizar el registro
      */
     public function update(Request $request, alternativaep $alternativaep)
     {
-        //
+        $data = $request->validate([
+            'Nombre' => 'required|string|max:100',
+            'Descripcion' => 'required|string|max:200'
+        ]);
+
+        $alternativaep->update($data);
+
+        return redirect()->route('alternativaep.index')
+            ->with('success', 'Registro actualizado correctamente');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Eliminar el registro con protección de errores
      */
     public function destroy(alternativaep $alternativaep)
     {
-        //
+        try {
+            $alternativaep->delete();
+            return redirect()->route('alternativaep.index')
+                ->with('success', 'Registro eliminado correctamente');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == "23000") {
+                return redirect()->route('alternativaep.index')
+                    ->with('error', 'No se puede eliminar: esta alternativa tiene registros asociados.');
+            }
+            return redirect()->route('alternativaep.index')
+                ->with('error', 'Ocurrió un error inesperado.');
+        }
     }
 }
