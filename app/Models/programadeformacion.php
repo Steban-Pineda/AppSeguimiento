@@ -10,7 +10,7 @@ class programadeformacion extends Model
     //
     use HasFactory;
     protected $table = 'tbl_programadeformacion';
-
+    protected $primaryKey = 'NIS';
     protected $fillable = [
         'NIS', 'Codigo', 'Denominacion', 'Observaciones'
     ];

@@ -7,74 +7,75 @@ use Illuminate\Http\Request;
 
 class ProgramadeformacionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        //
-        $Programa = programadeformacion::all(); // trae todos los registros
+        $buscar = $request->get('buscar');
 
-        return view('programadeformacion.index', compact('Programa'));
+        // Aplicamos el mismo buscador y paginación que en Regional
+        $Programa = programadeformacion::when($buscar, function ($query, $buscar) {
+            return $query->where('Denominacion', 'LIKE', "%{$buscar}%")
+                ->orWhere('Codigo', 'LIKE', "%{$buscar}%");
+        })->paginate(10)->withQueryString();
 
+        return view('programadeformacion.index', compact('Programa', 'buscar'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
-        //
         return view('programadeformacion.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $data = $request->validate([
             'Codigo' => 'required|integer',
             'Denominacion' => 'required|string|max:200',
             'Observaciones' => 'required|string|max:200'
-
         ]);
-        //$data['Observaciones'] = Crypt::encryptString($data['Observaciones']);
+
         programadeformacion::create($data);
 
         return redirect()->route('programadeformacion.index')
-            ->with('success', 'Registro guardado correctamente');
+            ->with('success', 'Programa guardado correctamente');
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(programadeformacion $programadeformacion)
     {
-        //
+        return view('programadeformacion.show', compact('programadeformacion'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(programadeformacion $programadeformacion)
     {
-        //
+        return view('programadeformacion.create', compact('programadeformacion'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, programadeformacion $programadeformacion)
     {
-        //
+        $data = $request->validate([
+            'Codigo' => 'required|integer',
+            'Denominacion' => 'required|string|max:200',
+            'Observaciones' => 'required|string|max:200'
+        ]);
+
+        $programadeformacion->update($data);
+
+        return redirect()->route('programadeformacion.index')
+            ->with('success', 'Programa actualizado correctamente');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(programadeformacion $programadeformacion)
     {
-        //
+        try {
+            $programadeformacion->delete();
+            return redirect()->route('programadeformacion.index')
+                ->with('success', 'Eliminado correctamente');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == "23000") {
+                return redirect()->route('programadeformacion.index')
+                    ->with('error', 'No se puede eliminar: tiene registros vinculados.');
+            }
+            return redirect()->route('programadeformacion.index')
+                ->with('error', 'Error al intentar eliminar.');
+        }
     }
 }
