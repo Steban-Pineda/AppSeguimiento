@@ -14,6 +14,10 @@ protected $primaryKey = 'NIS';
     protected $fillable = [
         'NIS', 'Codigo', 'Denominacion', 'Direccion', 'Observaciones', 'tbl_regional_NIS'
     ];
+    public function regional()
+    {
+        return $this->belongsTo(regional::class, 'tbl_regional_NIS', 'NIS');
+    }
 
     public $timestamps = false;
 

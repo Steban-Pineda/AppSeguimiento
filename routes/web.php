@@ -15,9 +15,7 @@ Route::resource('Regional', RegionalController::class);
 Route::resource('alternativaep', \App\Http\Controllers\AlternativaepController::class);
 
 
-Route::get('/Centrodeformacion', [\App\Http\Controllers\CentrodeformacionController::class, 'index'])->name('Centrodeformacion.index');
-Route::get('/Centrodeformacion/create', [\App\Http\Controllers\CentrodeformacionController::class, 'create'])->name('Centrodeformacion.create');
-Route::post('/Centrodeformacion/store', [\App\Http\Controllers\CentrodeformacionController::class, 'store'])->name('Centrodeformacion.store');
+
 
 
 
@@ -39,6 +37,8 @@ Route::resource('enteconformador', \App\Http\Controllers\enteconformadorControll
 Route::resource('programadeformacion', \App\Http\Controllers\programadeformacionController::class);
 Route::resource('Fichadecaracterizacion', \App\Http\Controllers\FichadecaracterizacionController::class);
 Route::resource('Aprendices', \App\Http\Controllers\AprendicesController::class);
+Route::resource('Centrodeformacion', \App\Http\Controllers\CentrodeformacionController::class);
+Route::resource('Instructor', \App\Http\Controllers\InstructorController::class);
 
 
 

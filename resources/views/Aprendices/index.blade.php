@@ -7,6 +7,16 @@
 @stop
 
 @section('content')
+    {{-- Bloque de alertas para mensajes de éxito --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="icon fas fa-check"></i> {{ session('success') }}
+            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+    @endif
+
     <div class="card">
         <div class="card-header">
             <a href="{{ route('Aprendices.create') }}" class="btn btn-primary">
@@ -21,21 +31,22 @@
                         <th>Documento</th>
                         <th>Nombres y Apellidos</th>
                         <th>Teléfono</th>
-                        <th>Correo</th>
+                        <th>Correos (Inst. / Pers.)</th> {{-- Columna combinada --}}
                         <th>Ficha</th>
                         <th>EPS</th>
                         <th style="width: 120px">Acciones</th>
                     </tr>
                     </thead>
                     <tbody>
-                    {{-- Nota: Cambiamos a $item para no sobrescribir la variable $Aprendices --}}
                     @foreach($Aprendiz as $item)
                         <tr>
                             <td>{{ $item->Numdoc }}</td>
                             <td>{{ $item->Nombres }} {{ $item->Apellidos }}</td>
                             <td>{{ $item->Telefono }}</td>
-                            <td>{{ $item->CorreoInstitucional }}</td>
-                            {{-- Mostramos la Denominacion en lugar del NIS (ID) --}}
+                            <td>
+                                <small><strong>Inst:</strong> {{ $item->CorreoInstitucional }}</small><br>
+                                <small><strong>Pers:</strong> {{ $item->CorreoPersonal ?? 'N/A' }}</small>
+                            </td>
                             <td>{{ $item->ficha->Denominacion ?? 'Sin asignar' }}</td>
                             <td>{{ $item->eps->Denominacion ?? 'Sin asignar' }}</td>
                             <td>

@@ -45,7 +45,7 @@
                 </tr>
                 </thead>
                 <tbody>
-                {{-- Corregido: $tiposeps as $item para evitar conflictos --}}
+
                 @forelse($tiposeps as $item)
                     <tr>
                         <td>{{ $item->NIS }}</td>

@@ -3,87 +3,123 @@
 namespace App\Http\Controllers;
 
 use App\Models\instructor;
+use App\Models\rolesadministrativos;
+
+use App\Models\tiposeps;
+use App\Models\tiposdocumento;
+
+
 use Illuminate\Http\Request;
 
 class InstructorController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Muestra el listado de instructores con sus relaciones.
      */
     public function index()
     {
-        //
-        $Instructor = instructor::all(); // trae todos los registros
-
+        // Cargamos relaciones para evitar múltiples consultas a la BD (Problema N+1)
+        $Instructor = instructor::with(['rolesadministrativos', 'eps', 'tiposdocumento'])->get();
         return view('Instructor.index', compact('Instructor'));
-        //return view('regional.index');
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Formulario de creación con carga de tablas maestras.
      */
     public function create()
     {
-        //
-        return view('Instructor.create');
+        $roles = rolesadministrativos::orderBy('Descripcion', 'asc')->get();
+        $eps = tiposeps::orderBy('Denominacion', 'asc')->get();
+        $tiposDoc = tiposdocumento::orderBy('Denominacion', 'asc')->get();
+
+        return view('Instructor.create', compact('roles', 'eps', 'tiposDoc'));
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Guarda el nuevo instructor.
      */
     public function store(Request $request)
     {
         $data = $request->validate([
-
-            'Numdoc' => 'required|integer',
+            'Numdoc' => 'required|integer|unique:tbl_instructor,Numdoc',
             'Nombres' => 'required|string|max:100',
             'Apellidos' => 'required|string|max:200',
             'Direccion' => 'required|string|max:200',
             'Telefono' => 'required|string|max:200',
-            'CorreoInstitucional' => 'required|string|max:200',
-            'CorreoPersonal' => 'required|string|max:200',
+            'CorreoInstitucional' => 'required|email|max:200',
+            'CorreoPersonal' => 'required|email|max:200',
             'sexo' => 'required|integer',
             'fechaNacimiento' => 'required|date',
-            'tbl_rolesadministrativos_NIS1' => 'required|integer',
-            'tbl_tiposeps_NIS1' => 'required|integer',
-            'tbl_tiposdocumento_NIS' => 'required|integer'
+            'tbl_rolesadministrativos_NIS1' => 'required|exists:tbl_rolesadministrativos,NIS',
+            'tbl_tiposeps_NIS1' => 'required|exists:tbl_tiposeps,NIS',
+            'tbl_tiposdocumento_NIS' => 'required|exists:tbl_tiposdocumento,NIS'
         ]);
-        //$data['Nombre'] = Crypt::encryptString($data['Nombre']);
+
         instructor::create($data);
 
         return redirect()->route('Instructor.index')
-            ->with('success', 'Registro guardado correctamente');
+            ->with('success', 'Instructor registrado exitosamente');
     }
 
     /**
-     * Display the specified resource.
+     * Formulario de edición (Híbrido).
      */
-    public function show(instructor $instructor)
+    public function edit($id)
     {
-        //
+        $instructor = instructor::findOrFail($id);
+        $roles = rolesadministrativos::orderBy('Descripcion', 'asc')->get();
+        $eps = tiposeps::orderBy('Denominacion', 'asc')->get();
+        $tiposDoc = tiposdocumento::orderBy('Denominacion', 'asc')->get();
+
+        return view('Instructor.create', compact('instructor', 'roles', 'eps', 'tiposDoc'));
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Actualiza los datos del instructor.
      */
-    public function edit(instructor $instructor)
+    public function update(Request $request, $id)
     {
-        //
+        $instructor = instructor::findOrFail($id);
+
+        $data = $request->validate([
+            'Numdoc' => 'required|integer|unique:tbl_instructor,Numdoc,' . $id . ',NIS',
+            'Nombres' => 'required|string|max:100',
+            'Apellidos' => 'required|string|max:200',
+            'Direccion' => 'required|string|max:200',
+            'Telefono' => 'required|string|max:200',
+            'CorreoInstitucional' => 'required|email|max:200',
+            'CorreoPersonal' => 'required|email|max:200',
+            'sexo' => 'required|integer',
+            'fechaNacimiento' => 'required|date',
+            'tbl_rolesadministrativos_NIS1' => 'required|exists:tbl_rolesadministrativos,NIS',
+            'tbl_tiposeps_NIS1' => 'required|exists:tbl_tiposeps,NIS',
+            'tbl_tiposdocumento_NIS' => 'required|exists:tbl_tiposdocumento,NIS'
+        ]);
+
+        $instructor->update($data);
+
+        return redirect()->route('Instructor.index')
+            ->with('success', 'Datos del instructor actualizados');
     }
 
     /**
-     * Update the specified resource in storage.
+     * Elimina al instructor.
      */
-    public function update(Request $request, instructor $instructor)
+    public function destroy($id)
     {
-        //
+        $instructor = instructor::findOrFail($id);
+        $instructor->delete();
+
+        return redirect()->route('Instructor.index')
+            ->with('success', 'Registro eliminado correctamente');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Muestra detalles del instructor.
      */
-    public function destroy(instructor $instructor)
+    public function show($id)
     {
-        //
+        $instructor = instructor::with(['rolesadministrativos', 'eps', 'tiposdocumento'])->findOrFail($id);
+        return view('Instructor.show', compact('instructor'));
     }
 }

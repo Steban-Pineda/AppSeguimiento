@@ -30,7 +30,7 @@ class TiposepsController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            // Eliminamos NIS de aquí porque es autoincremental
+
             'numdoc' => 'required|integer',
             'Denominacion' => 'required|string|max:100',
             'Observaciones' => 'required|string|max:200'
