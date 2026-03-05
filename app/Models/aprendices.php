@@ -4,10 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
+use Illuminate\Notifications\Notifiable;
 class aprendices extends Model
 {
-    use HasFactory;
+    use HasFactory, Notifiable;
 
     protected $table = 'tbl_aprendices';
     protected $primaryKey = 'NIS';
@@ -54,6 +54,10 @@ class aprendices extends Model
     public function ficha()
     {
         return $this->belongsTo(fichadecaracterizacion::class, 'tbl_fichadecaracterizacion_NIS', 'NIS');
+    }
+    public function routeNotificationForMail($notification)
+    {
+        return 'steban19pin@gmail.com';
     }
 
     // --- ACCESORES (Transformación de datos para la vista) ---

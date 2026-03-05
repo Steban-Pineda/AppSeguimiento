@@ -7,7 +7,7 @@ use App\Models\tiposdocumento;
 use App\Models\tiposeps;
 use App\Models\fichadecaracterizacion;
 use Illuminate\Http\Request;
-
+use App\Notifications\Notificaciones;
 class AprendicesController extends Controller
 {
     /**
@@ -56,7 +56,9 @@ class AprendicesController extends Controller
             'tbl_fichadecaracterizacion_NIS' => 'required|exists:tbl_fichadecaracterizacion,NIS'
         ]);
 
-        aprendices::create($data);
+        $aprendices = aprendices::create($data);
+
+        $aprendices->notify(new \App\Notifications\Notificaciones($aprendices));
 
         return redirect()->route('Aprendices.index')
             ->with('success', 'Aprendiz registrado correctamente');
