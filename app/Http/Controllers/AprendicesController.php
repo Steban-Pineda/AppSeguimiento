@@ -8,6 +8,8 @@ use App\Models\tiposeps;
 use App\Models\fichadecaracterizacion;
 use Illuminate\Http\Request;
 use App\Notifications\Notificaciones;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 class AprendicesController extends Controller
 {
     /**
@@ -27,7 +29,7 @@ class AprendicesController extends Controller
      */
     public function create()
     {
-        // AQUÍ ESTABA EL DETALLE: Cargamos los datos para los selectores
+
         $tiposDoc = tiposdocumento::all();
         $eps = tiposeps::all();
         $fichas = fichadecaracterizacion::all();
@@ -47,22 +49,38 @@ class AprendicesController extends Controller
             'Direccion' => 'required|string|max:200',
             'Telefono' => 'required|string|max:200',
             'CorreoInstitucional' => 'required|email|max:200',
-            'CorreoPersonal' => 'required|email|max:200',
+            'CorreoPersonal' => 'required|email|max:200|unique:users,email', // Validar que el correo no exista en users
             'sexo' => 'required|integer|in:1,2',
             'fechaNacimiento' => 'required|date',
-            // Validamos que los IDs existan realmente en las tablas maestras
             'tbl_tiposdocumento_NIS' => 'required|exists:tbl_tiposdocumento,NIS',
             'tbl_tiposeps_NIS' => 'required|exists:tbl_tiposeps,NIS',
             'tbl_fichadecaracterizacion_NIS' => 'required|exists:tbl_fichadecaracterizacion,NIS'
         ]);
 
-        $aprendices = aprendices::create($data);
+        // 1. Crear el aprendiz en la tabla de negocio
+        $aprendiz = aprendices::create($data);
 
-        $aprendices->notify(new \App\Notifications\Notificaciones($aprendices));
+        // 2. Crear el acceso al sistema en la tabla 'users'
+        // La contraseña por defecto será su número de documento
+        User::create([
+            'name' => $data['Nombres'] . ' ' . $data['Apellidos'],
+            'email' => $data['CorreoPersonal'],
+            'password' => Hash::make($data['Numdoc']),
+            'role' => 3, // Asignamos Rol 3 (Aprendiz) automáticamente
+        ]);
+
+        // 3. Notificar (Cargamos la relación 'ficha' antes de enviar el correo)
+        $aprendiz->load('ficha');
+        $aprendiz->notify(new \App\Notifications\Notificaciones($aprendiz));
 
         return redirect()->route('Aprendices.index')
-            ->with('success', 'Aprendiz registrado correctamente');
+            ->with('success', 'Aprendiz y cuenta de usuario creados correctamente. La clave de acceso es su número de documento.');
+
+
     }
+
+
+
 
     /**
      * Muestra el detalle de un aprendiz.
