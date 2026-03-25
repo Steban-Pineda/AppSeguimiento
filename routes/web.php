@@ -3,7 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AprendicesController; // Asegúrate de importar tus controladores
 use Illuminate\Support\Facades\Route;
-
+use Illuminate\Support\Facades\Auth;
 
 
 Route::get('/dashboard', function () {
@@ -15,12 +15,17 @@ Route::middleware('auth')->group(function () {
     Route::get('/', function () {
         return view('welcome');
     });
-    // Rutas de Perfil (Breeze)
+    Route::get('/mi-perfil', function () {
+        $aprendiz = \App\Models\aprendices::where('CorreoPersonal', Auth::user()->email)->firstOrFail();
+        return redirect()->route('Aprendices.show', $aprendiz->NIS);
+    })->name('mi.perfil');
+
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // TUS RECURSOS (Copia y pega todos aquí)
+
     Route::resource('Aprendices', \App\Http\Controllers\AprendicesController::class);
     Route::resource('Instructor', \App\Http\Controllers\InstructorController::class);
     Route::resource('Fichadecaracterizacion', \App\Http\Controllers\FichadecaracterizacionController::class);

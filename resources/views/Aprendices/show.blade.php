@@ -85,9 +85,7 @@
                     </div>
                 </div>
                 <div class="card-footer">
-                    <a href="{{ route('Aprendices.index') }}" class="btn btn-secondary">
-                        <i class="fas fa-arrow-left"></i> Volver a la lista
-                    </a>
+
                     <a href="{{ route('Aprendices.edit', $aprendiz->NIS) }}" class="btn btn-warning float-right text-white">
                         <i class="fas fa-edit"></i> Editar Información
                     </a>

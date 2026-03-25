@@ -342,6 +342,7 @@ return [
             'text' => 'Aprendices',
             'route' => 'Aprendices.create',
             'icon' => 'fas fa-users',
+            'can'   => 'solo-admin-instructor',
         ],
         [
             'text' => 'Centro de formacion',

@@ -6,141 +6,192 @@ use App\Models\aprendices;
 use App\Models\tiposdocumento;
 use App\Models\tiposeps;
 use App\Models\fichadecaracterizacion;
-use Illuminate\Http\Request;
-use App\Notifications\Notificaciones;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+
 class AprendicesController extends Controller
 {
+
+    // ─── Helpers privados ───────────────────────────────────────────────────
+
+    /** Verifica si el usuario logueado es Aprendiz (role 3) */
+    private function esAprendiz(): bool
+    {
+        return Auth::user()->role === 3;
+    }
+
     /**
-     * Muestra la lista de aprendices con sus relaciones cargadas.
+     * Busca el aprendiz vinculado al usuario logueado.
+     * Lanza 404 si no tiene perfil asociado.
+     */
+    private function miAprendiz(): aprendices
+    {
+        $aprendiz = aprendices::where('CorreoPersonal', Auth::user()->email)->first();
+        abort_if(!$aprendiz, 404, 'No se encontró tu registro de aprendiz.');
+        return $aprendiz;
+    }
+
+    /**
+     * Verifica que el aprendiz pertenece al usuario logueado (si es role 3).
+     * Lanza 403 si intenta ver/editar datos de otro.
+     */
+    private function verificarPropietario(aprendices $aprendiz): void
+    {
+        if ($this->esAprendiz() && $aprendiz->CorreoPersonal !== Auth::user()->email) {
+            abort(403, 'No tienes permiso para acceder a este perfil.');
+        }
+    }
+
+    // ─── CRUD ───────────────────────────────────────────────────────────────
+
+    /**
+     * index: Solo Admin/Instructor (role 1 o 2).
+     * Si un aprendiz intenta entrar, se redirige a su propio perfil.
      */
     public function index()
     {
-        // Cargamos las relaciones para evitar el error de variable indefinida en la vista index
-        // y para que la consulta sea eficiente (Eager Loading).
-        $Aprendiz= aprendices::with(['tipoDocumento', 'eps', 'ficha'])->get();
+        if ($this->esAprendiz()) {
+            $aprendiz = $this->miAprendiz();
+            return redirect()->route('Aprendices.show', $aprendiz->NIS);
+        }
 
+        $Aprendiz = aprendices::with(['tipoDocumento', 'eps', 'ficha'])->get();
         return view('Aprendices.index', compact('Aprendiz'));
     }
 
     /**
-     * Muestra el formulario para crear un aprendiz.
+     * create: Solo Admin/Instructor.
      */
     public function create()
     {
+        abort_if($this->esAprendiz(), 403, 'No tienes permiso para crear registros.');
 
-        $tiposDoc = tiposdocumento::all();
-        $eps = tiposeps::all();
-        $fichas = fichadecaracterizacion::all();
-
-        return view('Aprendices.create', compact('tiposDoc', 'eps', 'fichas'));
+        return view('Aprendices.create', [
+            'tiposDoc' => tiposdocumento::all(),
+            'eps'      => tiposeps::all(),
+            'fichas'   => fichadecaracterizacion::all(),
+        ]);
     }
 
     /**
-     * Guarda el aprendiz en la base de datos.
+     * store: Crea aprendiz + usuario automáticamente en transacción.
      */
     public function store(Request $request)
     {
+        abort_if($this->esAprendiz(), 403);
+
         $data = $request->validate([
-            'Numdoc' => 'required|integer|unique:tbl_aprendices,Numdoc',
-            'Nombres' => 'required|string|max:100',
-            'Apellidos' => 'required|string|max:200',
-            'Direccion' => 'required|string|max:200',
-            'Telefono' => 'required|string|max:200',
-            'CorreoInstitucional' => 'required|email|max:200',
-            'CorreoPersonal' => 'required|email|max:200|unique:users,email', // Validar que el correo no exista en users
-            'sexo' => 'required|integer|in:1,2',
-            'fechaNacimiento' => 'required|date',
-            'tbl_tiposdocumento_NIS' => 'required|exists:tbl_tiposdocumento,NIS',
-            'tbl_tiposeps_NIS' => 'required|exists:tbl_tiposeps,NIS',
-            'tbl_fichadecaracterizacion_NIS' => 'required|exists:tbl_fichadecaracterizacion,NIS'
+            'Numdoc'                       => 'required|integer|unique:tbl_aprendices,Numdoc',
+            'Nombres'                      => 'required|string|max:100',
+            'Apellidos'                    => 'required|string|max:200',
+            'sexo'                         => 'required|integer|in:1,2',
+            'Direccion'                    => 'required|string|max:200',
+            'Telefono'                     => 'required|string|max:200',
+            'CorreoInstitucional'          => 'required|email|unique:tbl_aprendices,CorreoInstitucional',
+            'CorreoPersonal'               => 'required|email|unique:tbl_aprendices,CorreoPersonal|unique:users,email',
+            'fechaNacimiento'              => 'required|date',
+            'tbl_tiposdocumento_NIS'       => 'required|exists:tbl_tiposdocumento,NIS',
+            'tbl_tiposeps_NIS'             => 'required|exists:tbl_tiposeps,NIS',
+            'tbl_fichadecaracterizacion_NIS'=> 'required|exists:tbl_fichadecaracterizacion,NIS',
         ]);
 
-        // 1. Crear el aprendiz en la tabla de negocio
-        $aprendiz = aprendices::create($data);
+        DB::beginTransaction();
+        try {
+            $aprendiz = aprendices::create($data);
 
-        // 2. Crear el acceso al sistema en la tabla 'users'
-        // La contraseña por defecto será su número de documento
-        User::create([
-            'name' => $data['Nombres'] . ' ' . $data['Apellidos'],
-            'email' => $data['CorreoPersonal'],
-            'password' => Hash::make($data['Numdoc']),
-            'role' => 3, // Asignamos Rol 3 (Aprendiz) automáticamente
-        ]);
+            User::create([
+                'name'     => $data['Nombres'] . ' ' . $data['Apellidos'],
+                'email'    => $data['CorreoPersonal'],   // ← clave de la relación
+                'password' => Hash::make($data['Numdoc']),
+                'role'     => 3,
+            ]);
 
-        // 3. Notificar (Cargamos la relación 'ficha' antes de enviar el correo)
-        $aprendiz->load('ficha');
-        $aprendiz->notify(new \App\Notifications\Notificaciones($aprendiz));
+            DB::commit();
 
-        return redirect()->route('Aprendices.index')
-            ->with('success', 'Aprendiz y cuenta de usuario creados correctamente. La clave de acceso es su número de documento.');
+            return redirect()->route('Aprendices.index')
+                ->with('success', 'Aprendiz registrado. Contraseña inicial: número de documento.');
 
-
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->with('error', 'Error al registrar: ' . $e->getMessage())
+                ->withInput();
+        }
     }
 
-
-
-
     /**
-     * Muestra el detalle de un aprendiz.
+     * show: Aprendiz solo ve el suyo, Admin/Instructor ven cualquiera.
      */
     public function show($id)
     {
-        // Buscamos el aprendiz por su PK (NIS) cargando sus relaciones
-        $aprendiz = aprendices::with(['tipoDocumento', 'eps', 'ficha.programa'])->findOrFail($id);
+        $aprendiz = aprendices::with(['tipoDocumento', 'eps', 'ficha'])->findOrFail($id);
+
+        $this->verificarPropietario($aprendiz);
 
         return view('Aprendices.show', compact('aprendiz'));
     }
 
     /**
-     * Muestra el formulario de edición.
+     * edit: Aprendiz solo edita el suyo (campos limitados en la vista).
      */
     public function edit($id)
     {
         $aprendiz = aprendices::findOrFail($id);
 
-        // Cargamos nuevamente las listas para los selects en la edición
-        $tiposDoc = tiposdocumento::all();
-        $eps = tiposeps::all();
-        $fichas = fichadecaracterizacion::all();
+        $this->verificarPropietario($aprendiz);
 
-        return view('Aprendices.create', compact('aprendiz', 'tiposDoc', 'eps', 'fichas'));
+        return view('Aprendices.create', [
+            'aprendiz' => $aprendiz,
+            'tiposDoc' => tiposdocumento::all(),
+            'eps'      => tiposeps::all(),
+            'fichas'   => fichadecaracterizacion::all(),
+        ]);
     }
 
     /**
-     * Actualiza el registro.
+     * update: Aprendiz solo actualiza el suyo.
      */
     public function update(Request $request, $id)
     {
         $aprendiz = aprendices::findOrFail($id);
 
+        $this->verificarPropietario($aprendiz);
+
         $data = $request->validate([
-            // La validación unique ignora el ID actual para permitir guardar sin cambiar el documento
-            'Numdoc' => 'required|integer|unique:tbl_aprendices,Numdoc,' . $id . ',NIS',
-            'Nombres' => 'required|string|max:100',
-            'Apellidos' => 'required|string|max:200',
-            'sexo' => 'required|integer|in:1,2',
-            'tbl_tiposdocumento_NIS' => 'required|exists:tbl_tiposdocumento,NIS',
-            'tbl_tiposeps_NIS' => 'required|exists:tbl_tiposeps,NIS',
-            'tbl_fichadecaracterizacion_NIS' => 'required|exists:tbl_fichadecaracterizacion,NIS'
+            'Numdoc'                        => 'required|integer|unique:tbl_aprendices,Numdoc,' . $id . ',NIS',
+            'Nombres'                       => 'required|string|max:100',
+            'Apellidos'                     => 'required|string|max:200',
+            'sexo'                          => 'required|integer|in:1,2',
+            'Direccion'                     => 'required|string|max:200',
+            'Telefono'                      => 'required|string|max:200',
+            'tbl_tiposdocumento_NIS'        => 'required|exists:tbl_tiposdocumento,NIS',
+            'tbl_tiposeps_NIS'              => 'required|exists:tbl_tiposeps,NIS',
+            'tbl_fichadecaracterizacion_NIS'=> 'required|exists:tbl_fichadecaracterizacion,NIS',
         ]);
 
         $aprendiz->update($data);
 
-        return redirect()->route('Aprendices.index')
-            ->with('success', 'Datos actualizados correctamente');
+        // Redirige según el rol
+        $ruta = $this->esAprendiz()
+            ? redirect()->route('Aprendices.show', $aprendiz->NIS)
+            : redirect()->route('Aprendices.index');
+
+        return $ruta->with('success', 'Información actualizada correctamente.');
     }
 
     /**
-     * Elimina el registro.
+     * destroy: Solo Admin/Instructor.
      */
     public function destroy($id)
     {
-        $aprendiz = aprendices::findOrFail($id);
-        $aprendiz->delete();
+        abort_if($this->esAprendiz(), 403, 'Un aprendiz no puede eliminar registros.');
+
+        aprendices::findOrFail($id)->delete();
 
         return redirect()->route('Aprendices.index')
-            ->with('success', 'Aprendiz eliminado con éxito');
+            ->with('success', 'Aprendiz eliminado con éxito.');
     }
 }
