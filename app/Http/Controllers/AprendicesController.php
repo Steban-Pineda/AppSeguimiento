@@ -7,10 +7,12 @@ use App\Models\tiposdocumento;
 use App\Models\tiposeps;
 use App\Models\fichadecaracterizacion;
 use App\Models\User;
+use App\Notifications\Notificaciones;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+
 
 class AprendicesController extends Controller
 {
@@ -51,15 +53,25 @@ class AprendicesController extends Controller
      * index: Solo Admin/Instructor (role 1 o 2).
      * Si un aprendiz intenta entrar, se redirige a su propio perfil.
      */
-    public function index()
+    public function index(Request $request)
     {
         if ($this->esAprendiz()) {
             $aprendiz = $this->miAprendiz();
             return redirect()->route('Aprendices.show', $aprendiz->NIS);
         }
 
-        $Aprendiz = aprendices::with(['tipoDocumento', 'eps', 'ficha'])->get();
-        return view('Aprendices.index', compact('Aprendiz'));
+        $buscar = $request->get('buscar');
+
+        $Aprendiz = aprendices::with(['tipoDocumento', 'eps', 'ficha'])
+            ->when($buscar, function ($query, $buscar) {
+                return $query->where('Numdoc', 'LIKE', "%{$buscar}%")
+                    ->orWhere('tbl_fichadecaracterizacion_NIS', 'LIKE', "%{$buscar}%")
+                    ->orWhere('NIS', 'LIKE', "%{$buscar}%");
+            })
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('Aprendices.index', compact('Aprendiz', 'buscar'));
     }
 
     /**
@@ -99,6 +111,7 @@ class AprendicesController extends Controller
         ]);
 
         DB::beginTransaction();
+
         try {
             $aprendiz = aprendices::create($data);
 
@@ -110,7 +123,8 @@ class AprendicesController extends Controller
             ]);
 
             DB::commit();
-
+            $aprendiz->load('ficha'); // carga la relación para el correo
+            $aprendiz->notify(new Notificaciones($aprendiz));
             return redirect()->route('Aprendices.index')
                 ->with('success', 'Aprendiz registrado. Contraseña inicial: número de documento.');
 

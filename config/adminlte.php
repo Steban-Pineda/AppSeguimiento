@@ -257,7 +257,7 @@ return [
     */
 
     'use_route_url' => false,
-    'dashboard_url' => 'home',
+    'dashboard_url' => '/',
     'logout_url' => 'logout',
     'login_url' => 'login',
     'register_url' => 'register',
@@ -332,11 +332,13 @@ return [
             'text' => 'Regional',
             'route' => 'Regional.create',
             'icon' => 'fas fa-fw fa-map',
+            'can'   => 'solo-admin-instructor',
         ],
         [
             'text' => 'Alternativa',
             'route' => 'alternativaep.create',
             'icon' => 'fas fa-briefcase',
+            'can'   => 'solo-admin-instructor',
         ],
         [
             'text' => 'Aprendices',
@@ -348,16 +350,19 @@ return [
             'text' => 'Centro de formacion',
             'route' => 'Centrodeformacion.create',
             'icon' => 'fas fa-university',
+            'can'   => 'solo-admin-instructor',
         ],
         [
             'text' => 'Entecoformador',
             'route' => 'enteconformador.create',
             'icon' => 'fas fa-user',
+            'can'   => 'solo-admin-instructor',
         ],
         [
             'text' => 'Ficha de caracterizacion',
             'route' => 'Fichadecaracterizacion.create',
             'icon' => 'fas fa-clipboard-list',
+            'can'   => 'solo-admin-instructor',
         ],
 
         [
@@ -368,22 +373,27 @@ return [
             'text' => 'programa de formacion',
             'route' => 'programadeformacion.create',
             'icon' => 'fas fa-book',
+            'can'   => 'solo-admin-instructor',
         ],  [
             'text' => 'roles administrativos',
             'route' => 'rolesadministrativos.create',
             'icon' => 'fas fa-user-shield',
+            'can'   => 'solo-admin-instructor',
         ], [
             'text' => 'Sub alternativaep',
             'route' => 'Subalternativaep.create',
             'icon' => 'fas fa-sitemap',
+            'can'   => 'solo-admin-instructor',
         ], [
             'text' => 'tipos de documento',
             'route' => 'tiposdocumento.create',
             'icon' => 'fas fa-id-card',
+            'can'   => 'solo-admin-instructor',
         ], [
             'text' => 'tipos eps',
             'route' => 'tiposeps.create',
             'icon' => 'fas fa-id-card',
+            'can'   => 'solo-admin-instructor',
         ],
 
 

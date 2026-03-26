@@ -14,17 +14,14 @@ class TiposdocumentoController extends Controller
 
     public function index(Request $request)
     {
-        // Capturamos el texto de búsqueda
         $buscar = $request->get('buscar');
 
-        // Consultamos con filtro opcional
-        $tipodoc = tiposdocumento::when($buscar, function ($query, $buscar) {
-            return $query->where('Denominacion', 'LIKE', "%{$buscar}%")
-                ->orWhere('NIS', 'LIKE', "%{$buscar}%");
-        })->get();
+        // Usamos paginate() en lugar de get() o all()
+        $tipodoc = Tiposdocumento::where('Denominacion', 'LIKE', "%$buscar%")
+            ->orWhere('NIS', 'LIKE', "%$buscar%")
+            ->paginate(10); // Aquí defines cuántos registros ver por página
 
-        // Pasamos 'buscar' a la vista para que el texto no se borre del input al recargar
-        return view('tiposdocumento.index', compact('tipodoc', 'buscar'));
+        return view('Tiposdocumento.index', compact('tipodoc'));
     }
 
     /**
